@@ -48,7 +48,12 @@ describe('checkMissing', () => {
       }),
     );
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ id: 'missing-variable', severity: 'error', environments: ['eas:production'], variable: 'EXPO_PUBLIC_DOT' });
+    expect(findings[0]).toMatchObject({
+      id: 'missing-variable',
+      severity: 'error',
+      environments: ['eas:production'],
+      variable: 'EXPO_PUBLIC_DOT',
+    });
     expect(findings[0]!.fix).toContain('eas env:set --environment production --name EXPO_PUBLIC_DOT');
   });
 
@@ -56,7 +61,12 @@ describe('checkMissing', () => {
     const findings = checkMissing(
       model({
         accesses: [access('EXPO_PUBLIC_A'), access('EXPO_PUBLIC_A', { line: 9 })],
-        environments: [env('local', []), env('eas:development', [], { missingSeverity: 'warning' }), env('eas:preview', []), env('eas:production', [])],
+        environments: [
+          env('local', []),
+          env('eas:development', [], { missingSeverity: 'warning' }),
+          env('eas:preview', []),
+          env('eas:production', []),
+        ],
       }),
     );
     expect(findings.map((f) => [f.severity, f.environments])).toEqual([
@@ -75,12 +85,16 @@ describe('checkMissing', () => {
   });
 
   it('uses the environment severity (EAS development is a warning)', () => {
-    const [finding] = checkMissing(model({ accesses: [access('EXPO_PUBLIC_A')], environments: [env('eas:development', [], { missingSeverity: 'warning' })] }));
+    const [finding] = checkMissing(
+      model({ accesses: [access('EXPO_PUBLIC_A')], environments: [env('eas:development', [], { missingSeverity: 'warning' })] }),
+    );
     expect(finding?.severity).toBe('warning');
   });
 
   it('suggests a close name', () => {
-    const [finding] = checkMissing(model({ accesses: [access('EXPO_PUBLIC_API_URL')], environments: [env('local', [def('EXPO_PUBLIC_API_URI', 'x')])] }));
+    const [finding] = checkMissing(
+      model({ accesses: [access('EXPO_PUBLIC_API_URL')], environments: [env('local', [def('EXPO_PUBLIC_API_URI', 'x')])] }),
+    );
     expect(finding?.message).toContain('Did you mean EXPO_PUBLIC_API_URI?');
   });
 
@@ -122,7 +136,9 @@ describe('checkNonInlinedAccess', () => {
 
 describe('checkPrivateInApp', () => {
   it('flags unprefixed names but not Expo builtins', () => {
-    const findings = checkPrivateInApp(model({ accesses: [access('API_KEY'), access('NODE_ENV'), access('EXPO_OS'), access('API_KEY', { fileKind: 'server' })] }));
+    const findings = checkPrivateInApp(
+      model({ accesses: [access('API_KEY'), access('NODE_ENV'), access('EXPO_OS'), access('API_KEY', { fileKind: 'server' })] }),
+    );
     expect(findings.map((f) => f.variable)).toEqual(['API_KEY']);
   });
 });
@@ -146,12 +162,19 @@ describe('checkConfigMissing', () => {
 
 describe('checkUnused', () => {
   it('flags public variables nobody reads', () => {
-    const findings = checkUnused(model({ accesses: [access('EXPO_PUBLIC_A')], environments: [env('local', [def('EXPO_PUBLIC_A', '1'), def('EXPO_PUBLIC_OLD', '2'), def('SERVER_ONLY', '3')])] }));
+    const findings = checkUnused(
+      model({
+        accesses: [access('EXPO_PUBLIC_A')],
+        environments: [env('local', [def('EXPO_PUBLIC_A', '1'), def('EXPO_PUBLIC_OLD', '2'), def('SERVER_ONLY', '3')])],
+      }),
+    );
     expect(findings).toMatchObject([{ id: 'unused-variable', severity: 'warning', variable: 'EXPO_PUBLIC_OLD' }]);
   });
 
   it('is only info when a dynamic read could use anything', () => {
-    const [finding] = checkUnused(model({ accesses: [access(undefined, { kind: 'dynamic' })], environments: [env('local', [def('EXPO_PUBLIC_OLD', '2')])] }));
+    const [finding] = checkUnused(
+      model({ accesses: [access(undefined, { kind: 'dynamic' })], environments: [env('local', [def('EXPO_PUBLIC_OLD', '2')])] }),
+    );
     expect(finding?.severity).toBe('info');
   });
 });
@@ -172,18 +195,27 @@ describe('checkPublicSecrets', () => {
   });
 
   it('allows a Supabase anon key', () => {
-    expect(checkPublicSecrets(model({ environments: [env('local', [def('EXPO_PUBLIC_SUPABASE_ANON_KEY', fakeJwt({ role: 'anon' }))])] }))).toEqual([]);
+    expect(
+      checkPublicSecrets(model({ environments: [env('local', [def('EXPO_PUBLIC_SUPABASE_ANON_KEY', fakeJwt({ role: 'anon' }))])] })),
+    ).toEqual([]);
   });
 
   it('flags secret-looking names once across environments', () => {
     const findings = checkPublicSecrets(
-      model({ environments: [env('local', [def('EXPO_PUBLIC_CLIENT_SECRET', 'x')]), env('eas:production', [def('EXPO_PUBLIC_CLIENT_SECRET', 'y')])] }),
+      model({
+        environments: [
+          env('local', [def('EXPO_PUBLIC_CLIENT_SECRET', 'x')]),
+          env('eas:production', [def('EXPO_PUBLIC_CLIENT_SECRET', 'y')]),
+        ],
+      }),
     );
     expect(findings.map((f) => f.id)).toEqual(['public-secret-name']);
   });
 
   it('warns about sensitive visibility', () => {
-    const findings = checkPublicSecrets(model({ environments: [env('eas:production', [def('EXPO_PUBLIC_TOKEN_URL', 'x', { visibility: 'sensitive' })])] }));
+    const findings = checkPublicSecrets(
+      model({ environments: [env('eas:production', [def('EXPO_PUBLIC_TOKEN_URL', 'x', { visibility: 'sensitive' })])] }),
+    );
     expect(findings).toMatchObject([{ id: 'public-sensitive', severity: 'warning' }]);
   });
 

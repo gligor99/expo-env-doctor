@@ -51,7 +51,11 @@ async function main(): Promise<number> {
 
   if (!values.json && !values.offline) console.error('Reading EAS environments… (use --offline to skip)');
   const result = await runDoctor(root, { offline: values.offline, environments: values.environment, ignore: values.ignore });
-  console.log(values.json ? formatJson(result.findings, result.environments) : formatText(result.findings, result.environments, process.stdout.isTTY === true));
+  console.log(
+    values.json
+      ? formatJson(result.findings, result.environments)
+      : formatText(result.findings, result.environments, process.stdout.isTTY === true),
+  );
 
   const failing = result.findings.some((f) => f.severity === 'error' || (values.strict && f.severity === 'warning'));
   return failing ? 1 : 0;

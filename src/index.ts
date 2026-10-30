@@ -21,8 +21,15 @@ export async function runDoctor(root: string, options: DoctorOptions = {}): Prom
   const notes: Finding[] = [];
   let eas = options.eas;
   if (!eas && !options.offline) {
-    if (readEasProjectId(root)) eas = new EasCliSource(root);
-    else notes.push({ id: 'eas-not-linked', severity: 'info', message: 'No EAS project ID in the app config, so EAS environments were not checked.' });
+    if (readEasProjectId(root)) {
+      eas = new EasCliSource(root);
+    } else {
+      notes.push({
+        id: 'eas-not-linked',
+        severity: 'info',
+        message: 'No EAS project ID in the app config, so EAS environments were not checked.',
+      });
+    }
   }
   const model = await buildModel(root, { eas, environments: options.environments });
   const ignored = new Set(options.ignore ?? []);

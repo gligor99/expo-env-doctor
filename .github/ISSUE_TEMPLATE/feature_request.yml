@@ -1,0 +1,20 @@
+name: New check or feature
+description: A way env vars break Expo apps that the tool doesn't catch yet
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The bug it would catch
+      description: What breaks in the app, and how you found out.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What the tool should report
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Expo docs, an issue, or a reproduction showing that Expo/EAS really behave this way.

@@ -1,11 +1,42 @@
 {
   "name": "expo-env-doctor",
   "version": "0.0.0",
-  "description": "Check that the environment variables your Expo app uses are defined everywhere it gets built: .env files, eas.json and EAS environments.",
+  "description": "Find Expo environment variables that will be undefined on device: checks your code against .env files, eas.json and EAS environments.",
+  "keywords": [
+    "expo",
+    "eas",
+    "eas-build",
+    "eas-update",
+    "env",
+    "dotenv",
+    "environment-variables",
+    "EXPO_PUBLIC",
+    "react-native",
+    "cli",
+    "lint"
+  ],
+  "homepage": "https://github.com/gligor99/expo-env-doctor#readme",
+  "bugs": {
+    "url": "https://github.com/gligor99/expo-env-doctor/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gligor99/expo-env-doctor.git"
+  },
+  "license": "MIT",
+  "author": "gligor99",
   "type": "module",
   "bin": {
     "expo-env-doctor": "dist/cli.js"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
@@ -15,25 +46,15 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepack": "npm run build"
   },
-  "keywords": [
-    "expo",
-    "eas",
-    "env",
-    "environment-variables",
-    "react-native",
-    "cli"
-  ],
-  "license": "MIT",
-  "author": "gligor99",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/gligor99/expo-env-doctor.git"
-  },
-  "homepage": "https://github.com/gligor99/expo-env-doctor#readme",
-  "bugs": {
-    "url": "https://github.com/gligor99/expo-env-doctor/issues"
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
     "@babel/parser": "^8.0.10",
@@ -42,6 +63,7 @@
   "devDependencies": {
     "@babel/types": "^8.0.10",
     "@types/node": "^22.20.5",
+    "prettier": "^3.9.10",
     "typescript": "~5.9",
     "vitest": "^5.0.5"
   }

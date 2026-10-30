@@ -76,7 +76,10 @@ export function checkNonInlinedAccess(model: ProjectModel): Finding[] {
 /** Variables without the EXPO_PUBLIC_ prefix are never inlined into the app bundle. */
 export function checkPrivateInApp(model: ProjectModel): Finding[] {
   return model.accesses
-    .filter((access) => access.fileKind === 'app' && access.kind === 'inlined' && access.name && !isPublic(access.name) && !EXPO_BUILTINS.test(access.name))
+    .filter(
+      (access) =>
+        access.fileKind === 'app' && access.kind === 'inlined' && access.name && !isPublic(access.name) && !EXPO_BUILTINS.test(access.name),
+    )
     .map((access) => ({
       id: 'private-env-in-app',
       severity: 'error',
@@ -90,7 +93,9 @@ export function checkPrivateInApp(model: ProjectModel): Finding[] {
 
 /** Public variables used in app code but not defined in an environment the app is built for. */
 export function checkMissing(model: ProjectModel): Finding[] {
-  const used = groupByName(model.accesses.filter((access) => access.fileKind === 'app' && access.kind === 'inlined' && access.name && isPublic(access.name)));
+  const used = groupByName(
+    model.accesses.filter((access) => access.fileKind === 'app' && access.kind === 'inlined' && access.name && isPublic(access.name)),
+  );
   const findings: Finding[] = [];
   for (const [name, accesses] of used) {
     const allFallback = accesses.every((access) => access.hasFallback);
@@ -118,7 +123,14 @@ export function checkMissing(model: ProjectModel): Finding[] {
 /** app.config.* reads that differ per environment change the native config of each build. */
 export function checkConfigMissing(model: ProjectModel): Finding[] {
   const used = groupByName(
-    model.accesses.filter((access) => access.fileKind === 'config' && access.kind === 'inlined' && access.name && !access.hasFallback && !CONFIG_BUILTINS.test(access.name)),
+    model.accesses.filter(
+      (access) =>
+        access.fileKind === 'config' &&
+        access.kind === 'inlined' &&
+        access.name &&
+        !access.hasFallback &&
+        !CONFIG_BUILTINS.test(access.name),
+    ),
   );
   const findings: Finding[] = [];
   for (const [name, accesses] of used) {
@@ -131,7 +143,10 @@ export function checkConfigMissing(model: ProjectModel): Finding[] {
       environments: missing.map((env) => env.name),
       file: accesses[0]!.file,
       line: accesses[0]!.line,
-      message: [`${name} is read in the app config but not defined in ${list(missing)}, and has no fallback.`, ...hints(name, missing)].join(' '),
+      message: [
+        `${name} is read in the app config but not defined in ${list(missing)}, and has no fallback.`,
+        ...hints(name, missing),
+      ].join(' '),
       fix: fixForEnvironments(missing, name),
     });
   }
@@ -248,7 +263,10 @@ function list(envs: Environment[]): string {
 
 function guessEnvironment(profile: string, available: string[]): string {
   const lower = profile.toLowerCase();
-  return available.find((env) => lower.includes(env)) ?? (lower.includes('dev') ? 'development' : lower.includes('prev') ? 'preview' : 'production');
+  return (
+    available.find((env) => lower.includes(env)) ??
+    (lower.includes('dev') ? 'development' : lower.includes('prev') ? 'preview' : 'production')
+  );
 }
 
 function groupBy<T, K>(items: T[], key: (item: T) => K): Map<K, T[]> {
@@ -310,4 +328,3 @@ function distance(a: string, b: string): number {
 function unique<T>(items: T[]): T[] {
   return [...new Set(items)];
 }
-

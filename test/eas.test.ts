@@ -4,7 +4,8 @@ import { parseEnvListLong, parsePulledEnv } from '../src/sources/eas.js';
 // Real output shapes from eas-cli 27.2.0 (see docs/spikes.md), with fake values.
 describe('parsePulledEnv', () => {
   it('reads values and secret names', () => {
-    const text = '# Environment: production\n\nEXPO_PUBLIC_API_URL=https://prod.example.test\nEXPO_PUBLIC_SENSITIVE=fake_sensitive_value\n# SERVER_SECRET=***** (secret)';
+    const text =
+      '# Environment: production\n\nEXPO_PUBLIC_API_URL=https://prod.example.test\nEXPO_PUBLIC_SENSITIVE=fake_sensitive_value\n# SERVER_SECRET=***** (secret)';
     expect(parsePulledEnv(text, 'eas:production')).toEqual([
       { name: 'EXPO_PUBLIC_API_URL', value: 'https://prod.example.test', source: 'eas:production' },
       { name: 'EXPO_PUBLIC_SENSITIVE', value: 'fake_sensitive_value', source: 'eas:production' },

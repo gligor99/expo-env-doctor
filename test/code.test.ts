@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { classifyFile } from '../src/scan/files.js';
 import { scanCode } from '../src/scan/code.js';
 
-const scan = (code: string, file = 'App.tsx') => scanCode(code, file, 'app').accesses.map(({ name, kind, hasFallback }) => ({ name, kind, hasFallback }));
+const scan = (code: string, file = 'App.tsx') =>
+  scanCode(code, file, 'app').accesses.map(({ name, kind, hasFallback }) => ({ name, kind, hasFallback }));
 
 // Mirrors the spike in docs/spikes.md (expo export on SDK 58).
 describe('scanCode', () => {
@@ -25,11 +26,15 @@ describe('scanCode', () => {
   });
 
   it('flags a computed key', () => {
-    expect(scan(`const key = 'EXPO_PUBLIC_A'; export const v = process.env[key];`)).toEqual([{ name: undefined, kind: 'dynamic', hasFallback: false }]);
+    expect(scan(`const key = 'EXPO_PUBLIC_A'; export const v = process.env[key];`)).toEqual([
+      { name: undefined, kind: 'dynamic', hasFallback: false },
+    ]);
   });
 
   it('flags an alias', () => {
-    expect(scan(`const env = process.env; export const v = env.EXPO_PUBLIC_A;`)).toEqual([{ name: undefined, kind: 'alias', hasFallback: false }]);
+    expect(scan(`const env = process.env; export const v = env.EXPO_PUBLIC_A;`)).toEqual([
+      { name: undefined, kind: 'alias', hasFallback: false },
+    ]);
   });
 
   it('flags process.env used as a whole', () => {

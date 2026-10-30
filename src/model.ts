@@ -31,18 +31,26 @@ export async function buildModel(root: string, options: BuildOptions = {}): Prom
   }
 
   const easJson = readEasJson(root);
-  if (easJson.error) notes.push({ id: 'eas-json-invalid', severity: 'error', file: 'eas.json', message: `eas.json is not valid JSON: ${easJson.error}` });
+  if (easJson.error)
+    notes.push({ id: 'eas-json-invalid', severity: 'error', file: 'eas.json', message: `eas.json is not valid JSON: ${easJson.error}` });
 
   const environments: Environment[] = [];
   const hasEnvFiles = hasAnyEnvFile(root);
   if (hasEnvFiles) {
     // `expo start` loads development-mode files, including gitignored ones.
-    environments.push(localEnvironment('local', readEnvFiles(root, 'development').flatMap((file) => file.defs)));
+    environments.push(
+      localEnvironment(
+        'local',
+        readEnvFiles(root, 'development').flatMap((file) => file.defs),
+      ),
+    );
   }
 
   const easEnvironmentsWithVars: string[] = [];
   if (options.eas) {
-    const wanted = options.environments ?? unique([...DEFAULT_EAS_ENVIRONMENTS, ...easJson.profiles.flatMap((p) => (p.environment ? [p.environment] : []))]);
+    const wanted =
+      options.environments ??
+      unique([...DEFAULT_EAS_ENVIRONMENTS, ...easJson.profiles.flatMap((p) => (p.environment ? [p.environment] : []))]);
     const isUploaded = createUploadFilter(root);
     // EAS Build bundles JS in production mode, from the files it uploaded.
     const productionFiles = readEnvFiles(root, 'production');
@@ -67,7 +75,12 @@ export async function buildModel(root: string, options: BuildOptions = {}): Prom
     });
   }
   if (!environments.some((env) => env.name.startsWith('eas:')) && hasEnvFiles) {
-    environments.push(localEnvironment('production', readEnvFiles(root, 'production').flatMap((file) => file.defs)));
+    environments.push(
+      localEnvironment(
+        'production',
+        readEnvFiles(root, 'production').flatMap((file) => file.defs),
+      ),
+    );
   }
 
   return { root, accesses, environments, easProfiles: easJson.profiles, easEnvironmentsWithVars, notes };
@@ -111,5 +124,10 @@ function unique<T>(items: T[]): T[] {
 
 function firstLine(reason: unknown): string {
   const text = reason instanceof Error ? reason.message : String(reason);
-  return text.split('\n').find((line) => line.trim())?.trim() ?? 'unknown error';
+  return (
+    text
+      .split('\n')
+      .find((line) => line.trim())
+      ?.trim() ?? 'unknown error'
+  );
 }

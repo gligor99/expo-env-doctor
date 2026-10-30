@@ -8,6 +8,12 @@ Finds the environment variables your Expo app reads that will be `undefined` on 
 npx expo-env-doctor
 ```
 
+Or add it to the project (Node >= 20.19):
+
+```sh
+npm install --save-dev expo-env-doctor
+```
+
 ```
 Checked: local, eas:development, eas:preview, eas:production
 
@@ -26,18 +32,18 @@ Expo replaces `process.env.EXPO_PUBLIC_*` with its value when the JS bundle is b
 
 ## What it checks
 
-| Check | Severity |
-|---|---|
-| `EXPO_PUBLIC_*` used in the app but missing in an environment (local `.env*`, EAS development / preview / production, `eas.json` `env`) | error (warning for EAS development) |
-| Read in a way Expo can't inline: destructuring, `const env = process.env`, `process.env[key]`, `process.env` as a whole | error |
-| Variable without the `EXPO_PUBLIC_` prefix read in app code | error |
-| Secret in an `EXPO_PUBLIC_` variable (secret-like name, or a value that looks like a Stripe/AWS/GitHub/OpenAI key, private key or Supabase `service_role` JWT) | error |
-| Variable needed in a cloud build but only defined in a gitignored `.env` file | error (as a hint on the missing variable) |
-| `app.config.*` reads a variable missing in an environment, with no fallback | warning |
-| `EXPO_PUBLIC_` variable marked `sensitive` on EAS (it ships in plain text anyway) | warning |
-| `eas.json` build profile without `environment` | warning |
-| Variable defined but never read | warning |
-| Typos: suggests a defined name within 2 characters | hint |
+| Check                                                                                                                                                          | Severity                                  |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `EXPO_PUBLIC_*` used in the app but missing in an environment (local `.env*`, EAS development / preview / production, `eas.json` `env`)                        | error (warning for EAS development)       |
+| Read in a way Expo can't inline: destructuring, `const env = process.env`, `process.env[key]`, `process.env` as a whole                                        | error                                     |
+| Variable without the `EXPO_PUBLIC_` prefix read in app code                                                                                                    | error                                     |
+| Secret in an `EXPO_PUBLIC_` variable (secret-like name, or a value that looks like a Stripe/AWS/GitHub/OpenAI key, private key or Supabase `service_role` JWT) | error                                     |
+| Variable needed in a cloud build but only defined in a gitignored `.env` file                                                                                  | error (as a hint on the missing variable) |
+| `app.config.*` reads a variable missing in an environment, with no fallback                                                                                    | warning                                   |
+| `EXPO_PUBLIC_` variable marked `sensitive` on EAS (it ships in plain text anyway)                                                                              | warning                                   |
+| `eas.json` build profile without `environment`                                                                                                                 | warning                                   |
+| Variable defined but never read                                                                                                                                | warning                                   |
+| Typos: suggests a defined name within 2 characters                                                                                                             | hint                                      |
 
 Values are never printed. Secret matches show only the first 4 characters and the length.
 
@@ -66,16 +72,27 @@ When the app config has an EAS project ID, the tool reads each EAS environment w
     EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 ```
 
-## Development
+## Node API
 
-```sh
-npm install
-npm test
-npm run build
+```ts
+import { runDoctor } from 'expo-env-doctor';
+
+const { environments, findings } = await runDoctor('/path/to/app', { offline: true });
 ```
 
-`spikes/fixture-app` is a real Expo app used to verify the inlining rules and EAS output formats; see `docs/spikes.md`.
+`findings` has the same shape as the `--json` output: `{ id, severity, message, variable?, environments?, file?, line?, fix? }`. Finding ids are stable.
+
+## Limitations
+
+- Only `process.env` reads in your own source files are checked. Values read inside `node_modules`, native code or config plugins are not.
+- An alias (`const env = process.env`) is reported, but reads through it aren't tracked by name.
+- Projects outside git: the tool can't tell which `.env` files EAS Build uploads, so it assumes all of them are.
+- Expo's inlining rules were verified on SDK 58 (see [docs/spikes.md](docs/spikes.md)). If a newer SDK behaves differently, please open an issue.
+
+## Contributing
+
+Bug reports and new checks are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Security issues: [SECURITY.md](SECURITY.md).
 
 ## License
 
-MIT
+[MIT](LICENSE)

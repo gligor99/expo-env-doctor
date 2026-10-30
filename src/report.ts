@@ -31,7 +31,10 @@ export function formatText(findings: Finding[], environments: string[], color: b
     warning: paint(33, 'WARN '),
     info: paint(36, 'INFO '),
   };
-  const lines = [paint(2, `Checked: ${environments.length > 0 ? environments.join(', ') : 'code only (no .env files or EAS environments found)'}`), ''];
+  const lines = [
+    paint(2, `Checked: ${environments.length > 0 ? environments.join(', ') : 'code only (no .env files or EAS environments found)'}`),
+    '',
+  ];
   for (const finding of sortFindings(findings)) {
     const location = finding.file ? paint(2, `${finding.file}${finding.line ? `:${finding.line}` : ''}`) : '';
     lines.push(`${label[finding.severity]}  ${finding.message}`);

@@ -1,0 +1,32 @@
+name: Bug report
+description: A finding is wrong, missing, or the tool crashes
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The command you ran, what it printed, and what you expected instead. Remove any secret values.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: The smallest code / .env / eas.json that shows the problem, or a link to a repo.
+      render: ts
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: expo-env-doctor 0.1.0, Expo SDK 58, eas-cli 27.2.0, Node 22
+    validations:
+      required: true
+  - type: dropdown
+    id: eas
+    attributes:
+      label: EAS
+      options:
+        - Run with EAS environments
+        - Run with --offline
+        - Project is not on EAS

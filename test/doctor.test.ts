@@ -68,7 +68,10 @@ describe('runDoctor', () => {
     });
     const result = await runDoctor(root, { eas });
     expect(result.environments).toEqual(['eas:development', 'eas:preview', 'eas:production']);
-    expect(ids(result.findings)).toEqual(['missing-variable eas:development EXPO_PUBLIC_API_URL', 'missing-variable eas:production EXPO_PUBLIC_DOT']);
+    expect(ids(result.findings)).toEqual([
+      'missing-variable eas:development EXPO_PUBLIC_API_URL',
+      'missing-variable eas:production EXPO_PUBLIC_DOT',
+    ]);
     expect(result.findings.find((f) => f.environments?.includes('eas:development'))?.severity).toBe('warning');
   });
 
@@ -88,6 +91,41 @@ describe('runDoctor', () => {
     expect(finding?.message).toContain(".env.local, but EAS Build doesn't upload that file");
     // Locally the file is loaded, so `local` is fine.
     expect(result.findings.some((f) => f.environments?.includes('local'))).toBe(false);
+  });
+
+  describe('.easignore (rules verified in docs/spikes.md, spike 3)', () => {
+    const app = {
+      'apps/mobile/App.tsx': 'export const a = process.env.EXPO_PUBLIC_A;',
+      'apps/mobile/.env.local': 'EXPO_PUBLIC_A=1',
+      'apps/mobile/.gitignore': '.env*.local\n',
+      'apps/mobile/eas.json': JSON.stringify({ build: { production: { environment: 'production' } } }),
+    };
+    const productionMissing = async (root: string) =>
+      (await runDoctor(join(root, 'apps/mobile'), { eas: fakeEas({}) })).findings.some((f) => f.environments?.includes('eas:production'));
+
+    it('at the git root replaces .gitignore', async () => {
+      const root = project({ ...app, '.easignore': 'node_modules/\n' }, { git: true });
+      expect(await productionMissing(root)).toBe(false);
+    });
+
+    it('in the app folder is not used when the git root is above it', async () => {
+      const root = project({ ...app, 'apps/mobile/.easignore': 'node_modules/\n' }, { git: true });
+      expect(await productionMissing(root)).toBe(true);
+    });
+
+    it('at the git root can exclude a file .gitignore allows', async () => {
+      const root = project(
+        {
+          'App.tsx': 'export const a = process.env.EXPO_PUBLIC_A;',
+          '.env': 'EXPO_PUBLIC_A=1',
+          '.easignore': '.env\n',
+          'eas.json': JSON.stringify({ build: { production: { environment: 'production' } } }),
+        },
+        { git: true },
+      );
+      const finding = (await runDoctor(root, { eas: fakeEas({}) })).findings.find((f) => f.environments?.includes('eas:production'));
+      expect(finding?.message).toContain(".env, but EAS Build doesn't upload that file");
+    });
   });
 
   it('skips empty EAS environments that no profile uses', async () => {

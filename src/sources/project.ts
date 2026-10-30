@@ -30,7 +30,9 @@ export function readEasJson(root: string): EasJson {
     };
   };
   const bases = new Set(Object.values(raw).flatMap((profile) => (profile.extends ? [profile.extends] : [])));
-  return { profiles: Object.keys(raw).map((name) => ({ name, ...resolve(name, new Set()), ...(bases.has(name) ? { isBase: true } : {}) })) };
+  return {
+    profiles: Object.keys(raw).map((name) => ({ name, ...resolve(name, new Set()), ...(bases.has(name) ? { isBase: true } : {}) })),
+  };
 }
 
 interface RawProfile {
@@ -69,22 +71,32 @@ export function readEasProjectId(root: string): string | undefined {
 }
 
 /**
- * Files EAS Build won't upload. EAS uses `.easignore` instead of `.gitignore` when it exists.
- * Returns undefined when it can't be decided (no git repo and no .easignore).
+ * Files EAS Build won't upload, decided by git the same way EAS does.
+ * EAS archives from the git root; a `.easignore` there replaces `.gitignore` completely,
+ * and a `.easignore` in a subfolder is not used (verified in docs/spikes.md, spike 3).
+ * Returns undefined outside a git repo, where the rules haven't been verified.
  */
 export function createUploadFilter(root: string): ((file: string) => boolean) | undefined {
-  const easignore = join(root, '.easignore');
-  if (existsSync(easignore)) {
-    const patterns = readFileSync(easignore, 'utf8')
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith('#'));
-    return (file) => !patterns.some((pattern) => globToRegExp(pattern).test(file));
-  }
+  let top: string;
   try {
-    execFileSync('git', ['rev-parse', '--is-inside-work-tree'], { cwd: root, stdio: 'ignore' });
+    top = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
   } catch {
     return undefined;
+  }
+  const easignore = join(top, '.easignore');
+  if (existsSync(easignore)) {
+    return (file) => {
+      const out = execFileSync('git', ['ls-files', '--cached', '--others', '--ignored', `--exclude-from=${easignore}`, '--', file], {
+        cwd: root,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      return out.trim() === '';
+    };
   }
   return (file) => {
     try {
@@ -94,15 +106,4 @@ export function createUploadFilter(root: string): ((file: string) => boolean) | 
       return true;
     }
   };
-}
-
-/** Minimal gitignore-style glob for root-level files: `*`, `?`, optional leading `/`. */
-function globToRegExp(pattern: string): RegExp {
-  const body = pattern
-    .replace(/^\//, '')
-    .replace(/\/$/, '')
-    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*/g, '[^/]*')
-    .replace(/\?/g, '[^/]');
-  return new RegExp(`^${body}$`);
 }

@@ -6,24 +6,25 @@ Date: 2026-10-30. Fixture: `spikes/fixture-app` (Expo SDK 58, RN 0.88.1, eas-cli
 
 Method: `envProbe.ts` reads each variable through a different access pattern. Each variable has a unique value in `.env`. Then `npx expo export --platform android --no-bytecode` and grep the bundle.
 
-| Pattern | Inlined? | In bundle |
-|---|---|---|
-| `process.env.EXPO_PUBLIC_X` | ✅ | `"sentinel_dot"` |
-| `process.env['EXPO_PUBLIC_X']` (string literal) | ✅ | `"sentinel_bracket"` |
-| `process.env?.EXPO_PUBLIC_X` | ✅ | `"sentinel_optional"` |
-| `` `${process.env.EXPO_PUBLIC_X}` `` | ✅ | `"sentinel_template"` |
-| `const { EXPO_PUBLIC_X } = process.env` | ❌ | `{EXPO_PUBLIC_DESTRUCT:n}=process.env` |
-| `const env = process.env; env.EXPO_PUBLIC_X` | ❌ | `t.EXPO_PUBLIC_ALIAS` |
-| `process.env[key]` (`key` is a const) | ❌ | `process.env.EXPO_PUBLIC_DYNAMIC`. The minifier folds the constant **after** Babel has run, so the output *looks* like dot access but isn't inlined |
-| `JSON.stringify(process.env)` | ❌ | not inlined |
-| `process.env.PRIVATE_X` (no prefix) | ❌ | `process.env.PRIVATE_DOT` |
-| `EXPO_PUBLIC_` var defined nowhere | silent | `void 0`. No build warning or error |
+| Pattern                                         | Inlined? | In bundle                                                                                                                                           |
+| ----------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `process.env.EXPO_PUBLIC_X`                     | ✅       | `"sentinel_dot"`                                                                                                                                    |
+| `process.env['EXPO_PUBLIC_X']` (string literal) | ✅       | `"sentinel_bracket"`                                                                                                                                |
+| `process.env?.EXPO_PUBLIC_X`                    | ✅       | `"sentinel_optional"`                                                                                                                               |
+| `` `${process.env.EXPO_PUBLIC_X}` ``            | ✅       | `"sentinel_template"`                                                                                                                               |
+| `const { EXPO_PUBLIC_X } = process.env`         | ❌       | `{EXPO_PUBLIC_DESTRUCT:n}=process.env`                                                                                                              |
+| `const env = process.env; env.EXPO_PUBLIC_X`    | ❌       | `t.EXPO_PUBLIC_ALIAS`                                                                                                                               |
+| `process.env[key]` (`key` is a const)           | ❌       | `process.env.EXPO_PUBLIC_DYNAMIC`. The minifier folds the constant **after** Babel has run, so the output _looks_ like dot access but isn't inlined |
+| `JSON.stringify(process.env)`                   | ❌       | not inlined                                                                                                                                         |
+| `process.env.PRIVATE_X` (no prefix)             | ❌       | `process.env.PRIVATE_DOT`                                                                                                                           |
+| `EXPO_PUBLIC_` var defined nowhere              | silent   | `void 0`. No build warning or error                                                                                                                 |
 
 At runtime the polyfill is `process.env = process.env || {}; process.env.NODE_ENV = "production"`. So **every non-inlined access is `undefined` on device**.
 
 **Load order** (CLI prints `env: load ...`, export mode = production): `.env.production.local` > `.env.local` > `.env.production` > `.env`. The winning value `order_from_env_production_local` is in the bundle. Note: `.env.local` is loaded in production exports too.
 
 **Plan impact:**
+
 - Bracket access with a string literal is **fine**. Remove it from the error list; flag only non-literal keys.
 - Undefined vars become `void 0` silently. This confirms the core bug the tool targets.
 - The AST check must run on source, not on the bundle, because of minifier folding.
@@ -48,29 +49,44 @@ At runtime the polyfill is `process.env = process.env || {}; process.env.NODE_EN
 - In `env:list --format long`, plaintext vars show as `Visibility    PUBLIC`, not `PLAINTEXT`. The parser must map `PUBLIC | SENSITIVE | SECRET`.
 - The Developer role is enough to read sensitive values. Viewer was not tested.
 
-## Spike 3 — gitignored `.env` not uploaded to EAS Build ⏳ not done
+## Spike 3 — What EAS Build uploads ✅ done
 
-Needs a real EAS build (build credits/queue) or `eas build --local`. Ask before running.
+Method: `eas build:inspect -p android -s archive -o <dir>` (eas-cli 23.2.0). It builds locally the exact archive EAS uploads, with no cloud build and no credits used. The fixture is inside a git repo whose root is above the app (monorepo-like layout).
+
+| Scenario                           | `.env.local` / `.env.production.local` (gitignored) | `.env`, `.env.production` (committed) | untracked, not ignored         |
+| ---------------------------------- | --------------------------------------------------- | ------------------------------------- | ------------------------------ |
+| No `.easignore`                    | ❌ not uploaded                                     | ✅                                    | ✅ uploaded (no commit needed) |
+| `.easignore` in the **app folder** | ❌ not uploaded (file has **no effect**)            | ✅                                    | ✅                             |
+| `.easignore` at the **git root**   | ✅ uploaded                                         | ✅                                    | ✅                             |
+
+- EAS archives from the **git root**, not the app folder. The whole repo is uploaded.
+- A `.easignore` at the git root **replaces `.gitignore` completely**: in that run even the gitignored `dist/` got uploaded with all its files.
+- Ignored folders appear in the archive as empty directories; their files are not uploaded.
+- Not tested: projects outside git (`EAS_NO_VCS=1`). The tool doesn't guess there and treats every file as uploaded.
+
+**Code impact:** `createUploadFilter` originally read `.easignore` from the app folder with a minimal glob, which was wrong for monorepos. It now finds `.easignore` at the git root and lets git evaluate it (`git ls-files --ignored --exclude-from`), with 3 regression tests.
 
 ## Fixture state on EAS (for cleanup later)
 
-| Var | development | preview | production | Visibility |
-|---|---|---|---|---|
-| `EXPO_PUBLIC_DOT` | ✓ | ✓ | **missing** (deliberate) | plaintext |
-| `EXPO_PUBLIC_API_URL` | ✓ | ✓ | ✓ | plaintext |
-| `EXPO_PUBLIC_SENSITIVE` | – | – | ✓ | sensitive |
-| `SERVER_SECRET` | – | – | ✓ | secret |
+| Var                     | development | preview | production               | Visibility |
+| ----------------------- | ----------- | ------- | ------------------------ | ---------- |
+| `EXPO_PUBLIC_DOT`       | ✓           | ✓       | **missing** (deliberate) | plaintext  |
+| `EXPO_PUBLIC_API_URL`   | ✓           | ✓       | ✓                        | plaintext  |
+| `EXPO_PUBLIC_SENSITIVE` | –           | –       | ✓                        | sensitive  |
+| `SERVER_SECRET`         | –           | –       | ✓                        | secret     |
 
 ## Demand check ✅ done (weak–moderate)
 
 Date: 2026-10-30. Sources: GitHub issue search (unauthenticated API), Stack Overflow API. Reddit returned 403 to scripts; Discord can't be searched. Not covered.
 
 **Expo's own repos: low.**
+
 - `expo/expo` "EXPO_PUBLIC" + undefined: 5 issues all-time. Biggest: "Expo web not replacing process.env variables" (2023, 46 comments, 41 👍) and "[SDK 53] EXPO_PUBLIC env var not being set" (2025, 14 comments).
 - New bug class found: "Android release bundle task reuses stale EXPO_PUBLIC values when environment changes" (expo/expo, 2026-09). It's caused by the Metro cache.
 - Stack Overflow: 0 new questions in 12 months (SO is quiet overall). The top all-time question has 5.5k views: "How to read EAS build Secrets and Environment Variables… Getting undefined".
 
 **Across GitHub: real but scattered.** 85 issues in the last 12 months mention `EXPO_PUBLIC_` + undefined. About 27 are actually about env vars. Exact matches for our catalogue:
+
 - "EAS cloud builds have no source for three EXPO_PUBLIC_* variables" (toruiwasa/pulseticker)
 - "EAS and CI mobile builds receive no EXPO_PUBLIC_ variables" (utn-integrador-III/2026-bus-traking)
 - "@clerk/expo native Google Sign-In fails in production EAS builds when EXPO_PUBLIC_CLE…" (clerk/clerk-docs)
@@ -78,6 +94,6 @@ Date: 2026-10-30. Sources: GitHub issue search (unauthenticated API), Stack Over
 - Teams writing their own checks: "OTA publish guardrails: pk_live preflight, post-publish manifest verification" (Mingla-LLC/mingla-main)
 - Stale-cache class again: "Cold Release builds can inline EXPO_PUBLIC values from an earlier bundle via the shared Metro cache" (appandflow/stim, 2 issues)
 
-**Reading:** this is a *silent* bug. People hit it, fix it locally, and rarely file an issue. Nobody asks for a tool, but at least one team built its own preflight. That's evidence of the pain, not of demand for a package.
+**Reading:** this is a _silent_ bug. People hit it, fix it locally, and rarely file an issue. Nobody asks for a tool, but at least one team built its own preflight. That's evidence of the pain, not of demand for a package.
 
 **New differentiator idea:** a `--bundle <dist>` audit mode. Grep the exported bundle for the expected value per environment, and for secret-looking values. It catches the stale-Metro-cache class, which source analysis can't see.

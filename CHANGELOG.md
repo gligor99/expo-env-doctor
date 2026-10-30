@@ -4,11 +4,13 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## Unreleased
 
-## 0.1.1 - 2026-10-30
+## 0.1.2 - 2026-10-30
 
 ### Changed
 
-- Published from GitHub Actions with npm provenance. The release workflow skips publishing when the version is already on npm.
+- Published from GitHub Actions with npm provenance, through npm staged publishing (a maintainer approves each version with 2FA). The release workflow skips versions already on npm.
+
+0.1.1 was never published to npm.
 
 ## 0.1.0 - 2026-10-30
 

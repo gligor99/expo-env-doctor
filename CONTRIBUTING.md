@@ -67,4 +67,5 @@ CI runs the same steps on Node 20.19, 22 and 24, plus a smoke test of the built 
 
 1. Move the `Unreleased` entries in `CHANGELOG.md` under the new version, and bump `version` in `package.json`.
 2. Commit, then create a GitHub release with tag `vX.Y.Z`.
-3. The `Release` workflow publishes to npm with provenance via npm trusted publishing (no token stored in the repo).
+3. The `Release` workflow stages the version on npm with provenance via npm trusted publishing (no token stored in the repo).
+4. Approve it with 2FA: `npm stage list expo-env-doctor`, then `npm stage approve <id>` (or approve it on npmjs.com).

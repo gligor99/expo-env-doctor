@@ -26,10 +26,12 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
-      - name: Publish (skipped if this version is already on npm)
+      # Staged publishing: the version waits on npm until a maintainer approves it with 2FA.
+      - name: Stage for publishing (skipped if this version is already on npm)
         run: |
           if npm view "$(node -p "require('./package.json').name")@${GITHUB_REF_NAME#v}" version >/dev/null 2>&1; then
-            echo "::notice::${GITHUB_REF_NAME#v} is already on npm, nothing to publish."
+            echo "::notice::${GITHUB_REF_NAME#v} is already on npm, nothing to stage."
           else
-            npm publish
+            npm stage publish
+            echo "::notice::Staged. Approve it with: npm stage list expo-env-doctor, then npm stage approve <id>"
           fi

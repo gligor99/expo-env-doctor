@@ -53,7 +53,7 @@ export interface VarDef {
 
 export interface Environment {
   name: string;
-  /** Severity for a variable that is used in app code but missing here. */
+  /** Severity for a variable that is used in app code but missing here (`info` when only development clients are built with it). */
   missingSeverity: Severity;
   defs: Map<string, VarDef[]>;
   /** Variables defined in local files that are excluded from this environment (e.g. gitignored for EAS Build). */

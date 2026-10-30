@@ -102,10 +102,17 @@ function easEnvironment(
   const uploaded: VarDef[] = [];
   const excluded: VarDef[] = [];
   for (const file of productionFiles) (isUploaded && !isUploaded(file.file) ? excluded : uploaded).push(...file.defs);
+  const builtWith = profiles.filter((profile) => profile.environment === name);
   return {
     name: `eas:${name}`,
-    // Development builds load JS from the local dev server, so a variable missing in EAS is often fine there.
-    missingSeverity: name === 'development' ? 'warning' : 'error',
+    // Development clients load JS from the local dev server, so app code never sees these EAS values.
+    // Without profile info, `development` is assumed to be mostly development builds.
+    missingSeverity:
+      builtWith.length > 0 && builtWith.every((profile) => profile.developmentClient)
+        ? 'info'
+        : name === 'development'
+          ? 'warning'
+          : 'error',
     defs: group([...easDefs, ...profileDefs, ...uploaded]),
     excluded: group(excluded),
   };

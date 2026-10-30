@@ -18,6 +18,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - A profile that sets `environment` and is extended by others (`preview` extends `production`) keeps its `eas.json` `env`. It was treated as an unbuilt base, so its variables were reported missing.
 - `const { A, ...rest } = process.env` reports `rest` as a whole-`process.env` read, and `({ A } = process.env)` is reported as destructuring.
 - `typeof X` counts as handling `undefined`.
+- An `EXPO_PUBLIC_` variable missing in an EAS environment that only development client profiles build with is info, not a warning or error: development clients load JS from the dev server. `app.config.*` reads are still warnings, since they change the native build.
 - `EXPO_PUBLIC_FORGOT_PASSWORD_URL` and other names ending in `_URL`, `_URI`, `_PATH`, `_ROUTE`, `_PAGE` or `_SCREEN` are no longer reported as secrets.
 - `public-sensitive` lists every environment where the variable is sensitive, not only the first.
 - A failing `git` call while evaluating `.easignore` no longer crashes the run.

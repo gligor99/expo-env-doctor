@@ -121,6 +121,9 @@ export function checkMissing(model: ProjectModel): Finding[] {
         line: accesses[0]!.line,
         message: [
           `${name} is used${accesses.length > 1 ? ` in ${accesses.length} places` : ''} but not defined in ${list(envs)}${allFallback ? ' (every read has a fallback)' : ''}.`,
+          ...(envs.every((env) => env.missingSeverity === 'info')
+            ? ['Only development clients are built with it, and they load JS from your dev server, so this matters only for EAS Update.']
+            : []),
           ...hints(name, envs),
         ].join(' '),
         fix: fixForEnvironments(envs, name),

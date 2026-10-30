@@ -32,19 +32,19 @@ Expo replaces `process.env.EXPO_PUBLIC_*` with its value when the JS bundle is b
 
 ## What it checks
 
-| Check                                                                                                                                                          | Severity                                  |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| `EXPO_PUBLIC_*` used in the app but missing in an environment (local `.env*`, EAS development / preview / production, `eas.json` `env`)                        | error (warning for EAS development)       |
-| Read in a way Expo can't inline: destructuring, `const env = process.env`, `process.env[key]`, `process?.env.X`, `process.env` as a whole                      | error                                     |
-| Variable without the `EXPO_PUBLIC_` prefix read in app code                                                                                                    | error                                     |
-| Secret in an `EXPO_PUBLIC_` variable (secret-like name, or a value that looks like a Stripe/AWS/GitHub/OpenAI key, private key or Supabase `service_role` JWT) | error                                     |
-| Variable needed in a cloud build but only defined in a gitignored `.env` file                                                                                  | error (as a hint on the missing variable) |
-| `app.config.*` reads a variable missing in an environment, with no fallback                                                                                    | warning                                   |
-| `EXPO_PUBLIC_` variable marked `sensitive` on EAS (it ships in plain text anyway)                                                                              | warning                                   |
-| Development client build profile that gets the `production` EAS environment (no `environment`, default `store` distribution)                                   | warning                                   |
-| `eas.json` build profiles without `environment` (lists the environment EAS picks for each)                                                                     | info                                      |
-| Variable defined but never read (reads in `*.config.*` and `scripts/` count)                                                                                   | warning                                   |
-| Typos: suggests a defined name within 2 characters                                                                                                             | hint                                      |
+| Check                                                                                                                                                          | Severity                                                                                    |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `EXPO_PUBLIC_*` used in the app but missing in an environment (local `.env*`, EAS development / preview / production, `eas.json` `env`)                        | error (warning for EAS development, info when only development clients use the environment) |
+| Read in a way Expo can't inline: destructuring, `const env = process.env`, `process.env[key]`, `process?.env.X`, `process.env` as a whole                      | error                                                                                       |
+| Variable without the `EXPO_PUBLIC_` prefix read in app code                                                                                                    | error                                                                                       |
+| Secret in an `EXPO_PUBLIC_` variable (secret-like name, or a value that looks like a Stripe/AWS/GitHub/OpenAI key, private key or Supabase `service_role` JWT) | error                                                                                       |
+| Variable needed in a cloud build but only defined in a gitignored `.env` file                                                                                  | error (as a hint on the missing variable)                                                   |
+| `app.config.*` reads a variable missing in an environment, with no fallback                                                                                    | warning                                                                                     |
+| `EXPO_PUBLIC_` variable marked `sensitive` on EAS (it ships in plain text anyway)                                                                              | warning                                                                                     |
+| Development client build profile that gets the `production` EAS environment (no `environment`, default `store` distribution)                                   | warning                                                                                     |
+| `eas.json` build profiles without `environment` (lists the environment EAS picks for each)                                                                     | info                                                                                        |
+| Variable defined but never read (reads in `*.config.*` and `scripts/` count)                                                                                   | warning                                                                                     |
+| Typos: suggests a defined name within 2 characters                                                                                                             | hint                                                                                        |
 
 A missing variable whose every read handles `undefined` (`??`, `||`, `&&`, a comparison, a ternary or `if` test, `!`) is reported one level lower.
 

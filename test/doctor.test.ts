@@ -139,6 +139,35 @@ describe('runDoctor', () => {
     expect(ids((await runDoctor(root, { eas })).findings)).toEqual(['unused-variable EXPO_PUBLIC_B']);
   });
 
+  it('reports a variable missing only where development clients are built as info, but keeps app config warnings', async () => {
+    const root = project({
+      'App.tsx': 'export const a = process.env.EXPO_PUBLIC_A;',
+      'app.config.ts': 'export default { extra: { pool: process.env.USER_POOL_ID } };',
+      'eas.json': JSON.stringify({
+        build: {
+          development: { developmentClient: true, distribution: 'internal', environment: 'development' },
+          'development-prod': { developmentClient: true, distribution: 'internal', environment: 'production' },
+          production: { environment: 'production' },
+        },
+      }),
+    });
+    const eas = fakeEas({
+      development: [{ name: 'EXPO_PUBLIC_OTHER', value: '1' }],
+      preview: [{ name: 'EXPO_PUBLIC_A', value: '1' }],
+      production: [
+        { name: 'EXPO_PUBLIC_OTHER', value: '1' },
+        { name: 'USER_POOL_ID', value: 'p' },
+      ],
+    });
+    const findings = (await runDoctor(root, { eas, environments: ['development', 'production'] })).findings;
+    const severity = (id: string, environment: string) =>
+      findings.find((f) => f.id === id && f.environments?.includes(environment))?.severity;
+    expect(severity('missing-variable', 'eas:development')).toBe('info');
+    // production is also built by a store profile, so it stays an error.
+    expect(severity('missing-variable', 'eas:production')).toBe('error');
+    expect(severity('missing-config-variable', 'eas:development')).toBe('warning');
+  });
+
   it('skips tracked files deleted from the working tree', async () => {
     const root = project({ 'App.tsx': 'export const a = process.env.EXPO_PUBLIC_A;', '.env': 'EXPO_PUBLIC_A=1' }, { git: true });
     execFileSync('git', ['add', '-A'], { cwd: root });

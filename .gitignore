@@ -1,0 +1,6 @@
+node_modules/
+dist/
+coverage/
+spikes/fixture-app/node_modules/
+spikes/fixture-app/dist-spike/
+spikes/fixture-app/.expo/

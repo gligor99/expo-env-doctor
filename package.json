@@ -1,0 +1,48 @@
+{
+  "name": "expo-env-doctor",
+  "version": "0.0.0",
+  "description": "Check that the environment variables your Expo app uses are defined everywhere it gets built: .env files, eas.json and EAS environments.",
+  "type": "module",
+  "bin": {
+    "expo-env-doctor": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "expo",
+    "eas",
+    "env",
+    "environment-variables",
+    "react-native",
+    "cli"
+  ],
+  "license": "MIT",
+  "author": "gligor99",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gligor99/expo-env-doctor.git"
+  },
+  "homepage": "https://github.com/gligor99/expo-env-doctor#readme",
+  "bugs": {
+    "url": "https://github.com/gligor99/expo-env-doctor/issues"
+  },
+  "dependencies": {
+    "@babel/parser": "^8.0.10",
+    "@expo/env": "^2.5.3"
+  },
+  "devDependencies": {
+    "@babel/types": "^8.0.10",
+    "@types/node": "^22.20.5",
+    "typescript": "~5.9",
+    "vitest": "^5.0.5"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "expo-env-doctor-fixture",
+    "slug": "expo-env-doctor-fixture",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "owner": "g99labs",
+    "extra": {
+      "eas": {
+        "projectId": "38241d4c-bb12-4689-b002-b21f5484073c"
+      }
+    }
+  }
+}

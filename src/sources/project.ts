@@ -26,7 +26,10 @@ export function readEasJson(root: string): EasJson {
     const base = profile.extends ? resolve(profile.extends, seen) : {};
     return { ...base, ...profile, env: { ...base.env, ...profile.env } };
   };
-  const bases = new Set(Object.values(raw).flatMap((profile) => (profile.extends ? [profile.extends] : [])));
+  // A profile that sets its own `environment` is built for it even when others extend it (`preview` extends `production`).
+  const bases = new Set(
+    Object.values(raw).flatMap((profile) => (profile.extends && !raw[profile.extends]?.environment ? [profile.extends] : [])),
+  );
   return {
     profiles: Object.keys(raw).map((name) => {
       const profile = resolve(name, new Set());
@@ -106,12 +109,17 @@ export function createUploadFilter(root: string): ((file: string) => boolean) | 
   const easignore = join(top, '.easignore');
   if (existsSync(easignore)) {
     return (file) => {
-      const out = execFileSync('git', ['ls-files', '--cached', '--others', '--ignored', `--exclude-from=${easignore}`, '--', file], {
-        cwd: root,
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-      });
-      return out.trim() === '';
+      try {
+        const out = execFileSync('git', ['ls-files', '--cached', '--others', '--ignored', `--exclude-from=${easignore}`, '--', file], {
+          cwd: root,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+        });
+        return out.trim() === '';
+      } catch {
+        // Same as outside git: assume it is uploaded.
+        return true;
+      }
     };
   }
   return (file) => {

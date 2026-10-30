@@ -19,6 +19,8 @@ Method: `envProbe.ts` reads each variable through a different access pattern. Ea
 | `process.env.PRIVATE_X` (no prefix)             | ❌       | `process.env.PRIVATE_DOT`                                                                                                                           |
 | `EXPO_PUBLIC_` var defined nowhere              | silent   | `void 0`. No build warning or error                                                                                                                 |
 
+Added later (same fixture, values from the shell): `process.env?.['EXPO_PUBLIC_X']` is inlined. `process?.env?.EXPO_PUBLIC_X` and `process?.env.EXPO_PUBLIC_X` are **not**: they stay as `process?.env?.EXPO_PUBLIC_OPT_BOTH` in the bundle. babel-preset-expo only matches a non-optional `process.env`.
+
 At runtime the polyfill is `process.env = process.env || {}; process.env.NODE_ENV = "production"`. So **every non-inlined access is `undefined` on device**.
 
 **Load order** (CLI prints `env: load ...`, export mode = production): `.env.production.local` > `.env.local` > `.env.production` > `.env`. The winning value `order_from_env_production_local` is in the bundle. Note: `.env.local` is loaded in production exports too.

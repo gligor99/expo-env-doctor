@@ -48,21 +48,31 @@ export function scanCode(code: string, file: string, fileKind: FileKind): ScanRe
       if (grandparent?.type === 'AssignmentExpression' && grandparent.left === parent) return;
       const name = memberName(parent);
       if (name === undefined) return add('dynamic', parent);
-      return add('inlined', parent, name, hasFallback(parent, ancestors.slice(0, index)));
+      const kind = node.type === 'OptionalMemberExpression' && node.optional ? 'optional-process' : 'inlined';
+      return add(kind, parent, name, hasFallback(parent, ancestors.slice(0, index)));
     }
 
-    if (parent?.type === 'VariableDeclarator' && parent.init === child) {
-      if (parent.id.type === 'ObjectPattern') {
-        for (const property of parent.id.properties) {
-          if (property.type !== 'ObjectProperty') continue;
-          const key = property.key;
-          const name = key.type === 'Identifier' ? key.name : key.type === 'StringLiteral' ? key.value : undefined;
-          add('destructure', property, name);
+    // `const { X } = process.env` or `({ X } = process.env)`.
+    const pattern =
+      parent?.type === 'VariableDeclarator' && parent.init === child
+        ? parent.id
+        : parent?.type === 'AssignmentExpression' && parent.right === child
+          ? parent.left
+          : undefined;
+    if (pattern?.type === 'ObjectPattern') {
+      for (const property of pattern.properties) {
+        // `...rest` copies every variable, like using process.env as a whole.
+        if (property.type !== 'ObjectProperty') {
+          add('whole', property);
+          continue;
         }
-        return;
+        const key = property.key;
+        const name = key.type === 'Identifier' ? key.name : key.type === 'StringLiteral' ? key.value : undefined;
+        add('destructure', property, name);
       }
-      return add('alias', parent);
+      return;
     }
+    if (parent?.type === 'VariableDeclarator' && parent.init === child) return add('alias', parent);
 
     add('whole', node);
   });
@@ -93,7 +103,7 @@ function isMember(node: Node): node is Extract<Node, { type: 'MemberExpression' 
   return node.type === 'MemberExpression' || node.type === 'OptionalMemberExpression';
 }
 
-/** `process.env` or `process['env']`, the two forms babel-preset-expo recognises. */
+/** `process.env` or `process['env']`, the two forms babel-preset-expo recognises, or `process?.env`, which it doesn't. */
 function isProcessEnv(node: Node): boolean {
   if (!isMember(node) || node.object.type !== 'Identifier' || node.object.name !== 'process') return false;
   if (!node.computed) return node.property.type === 'Identifier' && node.property.name === 'env';
@@ -111,7 +121,7 @@ const COMPARISONS = new Set(['===', '!==', '==', '!=']);
 
 /**
  * True when the read already handles the variable being undefined:
- * `X ?? 'default'`, `X || 'default'`, `X && use(X)`, `X === 'true'`, `X ? a : b`, `if (X)`, `!X`.
+ * `X ?? 'default'`, `X || 'default'`, `X && use(X)`, `X === 'true'`, `X ? a : b`, `if (X)`, `!X`, `typeof X`.
  */
 function hasFallback(member: Node, ancestors: Node[]): boolean {
   let child = member;
@@ -127,7 +137,7 @@ function hasFallback(member: Node, ancestors: Node[]): boolean {
     case 'IfStatement':
       return parent.test === child;
     case 'UnaryExpression':
-      return parent.operator === '!';
+      return parent.operator === '!' || parent.operator === 'typeof';
     default:
       return false;
   }

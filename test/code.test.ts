@@ -26,6 +26,23 @@ describe('scanCode', () => {
     ]);
   });
 
+  it('flags assignment destructuring and treats a rest element as a whole read', () => {
+    expect(scan(`let a, rest; ({ EXPO_PUBLIC_A: a, ...rest } = process.env);`)).toEqual([
+      { name: 'EXPO_PUBLIC_A', kind: 'destructure', hasFallback: false },
+      { name: undefined, kind: 'whole', hasFallback: false },
+    ]);
+  });
+
+  it.each(['process?.env?.EXPO_PUBLIC_X', 'process?.env.EXPO_PUBLIC_X'])('%s is not inlined (SDK 58 export)', (expression) => {
+    expect(scan(`export const v = ${expression};`)).toEqual([{ name: 'EXPO_PUBLIC_X', kind: 'optional-process', hasFallback: false }]);
+  });
+
+  it("process.env?.['EXPO_PUBLIC_X'] is inlined", () => {
+    expect(scan("export const v = process.env?.['EXPO_PUBLIC_X'];")).toEqual([
+      { name: 'EXPO_PUBLIC_X', kind: 'inlined', hasFallback: false },
+    ]);
+  });
+
   it('flags a computed key', () => {
     expect(scan(`const key = 'EXPO_PUBLIC_A'; export const v = process.env[key];`)).toEqual([
       { name: undefined, kind: 'dynamic', hasFallback: false },
@@ -54,6 +71,7 @@ describe('scanCode', () => {
     "process.env.EXPO_PUBLIC_A === 'true'",
     'process.env.EXPO_PUBLIC_A ? 1 : 0',
     '!process.env.EXPO_PUBLIC_A',
+    "typeof process.env.EXPO_PUBLIC_A === 'string'",
   ])('treats %s as handling undefined', (expression) => {
     expect(scan(`export const v = ${expression};`)[0]).toEqual({ name: 'EXPO_PUBLIC_A', kind: 'inlined', hasFallback: true });
   });
@@ -97,6 +115,7 @@ describe('classifyFile', () => {
     ['jest-setup.js', 'tooling'],
     ['src/setupTests.ts', 'tooling'],
     ['src/plugins/analytics.ts', 'app'],
+    ['src/config/firebase.config.ts', 'app'],
     ['types/env.d.ts', undefined],
   ])('%s → %s', (file, kind) => {
     expect(classifyFile(file)).toBe(kind);

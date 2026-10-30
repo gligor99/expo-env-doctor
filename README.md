@@ -35,7 +35,7 @@ Expo replaces `process.env.EXPO_PUBLIC_*` with its value when the JS bundle is b
 | Check                                                                                                                                                          | Severity                                  |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
 | `EXPO_PUBLIC_*` used in the app but missing in an environment (local `.env*`, EAS development / preview / production, `eas.json` `env`)                        | error (warning for EAS development)       |
-| Read in a way Expo can't inline: destructuring, `const env = process.env`, `process.env[key]`, `process.env` as a whole                                        | error                                     |
+| Read in a way Expo can't inline: destructuring, `const env = process.env`, `process.env[key]`, `process?.env.X`, `process.env` as a whole                      | error                                     |
 | Variable without the `EXPO_PUBLIC_` prefix read in app code                                                                                                    | error                                     |
 | Secret in an `EXPO_PUBLIC_` variable (secret-like name, or a value that looks like a Stripe/AWS/GitHub/OpenAI key, private key or Supabase `service_role` JWT) | error                                     |
 | Variable needed in a cloud build but only defined in a gitignored `.env` file                                                                                  | error (as a hint on the missing variable) |

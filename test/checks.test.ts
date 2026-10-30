@@ -213,11 +213,28 @@ describe('checkPublicSecrets', () => {
     expect(findings.map((f) => f.id)).toEqual(['public-secret-name']);
   });
 
-  it('warns about sensitive visibility', () => {
+  it('does not flag a link to a secret-sounding page', () => {
     const findings = checkPublicSecrets(
-      model({ environments: [env('eas:production', [def('EXPO_PUBLIC_TOKEN_URL', 'x', { visibility: 'sensitive' })])] }),
+      model({
+        environments: [env('local', [def('EXPO_PUBLIC_FORGOT_PASSWORD_URL', 'https://x'), def('EXPO_PUBLIC_PRIVATE_ROUTE', '/p')])],
+      }),
     );
-    expect(findings).toMatchObject([{ id: 'public-sensitive', severity: 'warning' }]);
+    expect(findings).toEqual([]);
+  });
+
+  it('warns about sensitive visibility once, listing every environment', () => {
+    const sensitive = def('EXPO_PUBLIC_TOKEN_URL', 'x', { visibility: 'sensitive' });
+    const findings = checkPublicSecrets(model({ environments: [env('eas:preview', [sensitive]), env('eas:production', [sensitive])] }));
+    expect(findings).toMatchObject([{ id: 'public-sensitive', severity: 'warning', environments: ['eas:preview', 'eas:production'] }]);
+  });
+
+  it('flags process?.env in app code, not in the app config', () => {
+    const accesses = [
+      access('EXPO_PUBLIC_A', { kind: 'optional-process' }),
+      access('EXPO_PUBLIC_B', { kind: 'optional-process', fileKind: 'config' }),
+    ];
+    expect(checkNonInlinedAccess(model({ accesses })).map((f) => [f.id, f.variable])).toEqual([['optional-process-env', 'EXPO_PUBLIC_A']]);
+    expect(checkConfigMissing(model({ accesses, environments: [env('local', [])] })).map((f) => f.variable)).toEqual(['EXPO_PUBLIC_B']);
   });
 
   it('masks values', () => {

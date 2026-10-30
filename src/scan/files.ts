@@ -1,12 +1,13 @@
 import { execFileSync } from 'node:child_process';
-import { readdirSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { basename, join, relative, sep } from 'node:path';
 import type { FileKind } from '../types.js';
 
 const SOURCE_EXT = /\.(?:[cm]?[jt]sx?)$/;
 const SKIP_DIRS = new Set(['node_modules', 'ios', 'android', 'dist', 'build', 'web-build', 'coverage', 'spikes']);
 const TEST_FILE = /(?:\.(?:test|spec)\.[cm]?[jt]sx?$)|(?:(?:^|\/)__tests__\/)/;
-const TOOLING_CONFIG = /(?:^|\/)[^/]+\.config\.[cm]?[jt]s$/;
+/** Root-level only: `src/firebase.config.ts` is app code. */
+const TOOLING_CONFIG = /^[^/]+\.config\.[cm]?[jt]s$/;
 const APP_CONFIG = /^app\.config\.[cm]?[jt]s$/;
 /** Run in Node, not in the app: config plugins, scripts, test setup and mocks, e2e tests. */
 const TOOLING_DIR = /^(?:scripts|plugins|e2e)\/|(?:^|\/)__mocks__\//;
@@ -44,7 +45,8 @@ function gitFiles(root: string): string[] | undefined {
       stdio: ['ignore', 'pipe', 'ignore'],
       maxBuffer: 64 * 1024 * 1024,
     });
-    return out.split('\0').filter(Boolean);
+    // `--cached` still lists tracked files deleted from the working tree.
+    return out.split('\0').filter((file) => file && existsSync(join(root, file)));
   } catch {
     return undefined;
   }

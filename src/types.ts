@@ -20,6 +20,8 @@ export type AccessKind =
   | 'inlined'
   /** `const { X } = process.env`: never inlined. */
   | 'destructure'
+  /** `process?.env.X`, `process?.env?.X`: babel-preset-expo only matches a plain `process.env`, so never inlined. */
+  | 'optional-process'
   /** `process.env[key]` with a non-literal key: never inlined. */
   | 'dynamic'
   /** `const env = process.env`: never inlined. */

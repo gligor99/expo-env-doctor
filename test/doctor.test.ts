@@ -125,6 +125,28 @@ describe('runDoctor', () => {
     );
   });
 
+  it('keeps the eas.json env of a profile that others extend with a different environment', async () => {
+    const root = project({
+      'App.tsx': 'export const a = process.env.EXPO_PUBLIC_A;',
+      'eas.json': JSON.stringify({
+        build: {
+          production: { environment: 'production', env: { EXPO_PUBLIC_A: 'prod' } },
+          preview: { extends: 'production', environment: 'preview', env: { EXPO_PUBLIC_A: 'staging' } },
+        },
+      }),
+    });
+    const eas = fakeEas({ development: [{ name: 'EXPO_PUBLIC_A', value: 'dev' }], production: [{ name: 'EXPO_PUBLIC_B', value: '1' }] });
+    expect(ids((await runDoctor(root, { eas })).findings)).toEqual(['unused-variable EXPO_PUBLIC_B']);
+  });
+
+  it('skips tracked files deleted from the working tree', async () => {
+    const root = project({ 'App.tsx': 'export const a = process.env.EXPO_PUBLIC_A;', '.env': 'EXPO_PUBLIC_A=1' }, { git: true });
+    execFileSync('git', ['add', '-A'], { cwd: root });
+    rmSync(join(root, 'App.tsx'));
+    const result = await runDoctor(root, { offline: true });
+    expect(ids(result.findings)).toEqual(['unused-variable EXPO_PUBLIC_A']);
+  });
+
   describe('.easignore (rules verified in docs/spikes.md, spike 3)', () => {
     const app = {
       'apps/mobile/App.tsx': 'export const a = process.env.EXPO_PUBLIC_A;',

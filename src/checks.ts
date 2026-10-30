@@ -6,6 +6,8 @@ const EXPO_BUILTINS = /^(?:NODE_ENV|EXPO_OS|EXPO_BASE_URL|EXPO_PROJECT_ROOT|EXPO
 /** Set by EAS or CI at config time, never by the user. */
 const CONFIG_BUILTINS = /^(?:NODE_ENV|CI|EAS_BUILD(?:_[A-Z_]+)?|EXPO_(?!PUBLIC_)[A-Z_]+)$/;
 const SECRET_NAME = /SECRET|PRIVATE|PASSWORD|PASSWD|SERVICE_ROLE|ACCESS_KEY|SIGNING/;
+/** A link or route to something secret-sounding isn't a secret: `FORGOT_PASSWORD_URL`, `PRIVATE_ROUTE`. */
+const NOT_SECRET_SUFFIX = /_(?:URL|URI|PATH|ROUTE|PAGE|SCREEN)$/;
 const SECRET_VALUES: [RegExp, string][] = [
   [/^sk_(?:live|test)_[A-Za-z0-9]{10,}/, 'a Stripe secret key'],
   [/^rk_(?:live|test)_[A-Za-z0-9]{10,}/, 'a Stripe restricted key'],
@@ -44,6 +46,14 @@ export function checkNonInlinedAccess(model: ProjectModel): Finding[] {
             ...where,
             message: `\`${access.name ?? '?'}\` is destructured from process.env. Expo only inlines direct reads, so it is undefined in the app.`,
             fix: `const ${access.name ?? 'NAME'} = process.env.${access.name ?? 'NAME'};`,
+          } satisfies Finding;
+        case 'optional-process':
+          return {
+            id: 'optional-process-env',
+            severity: 'error',
+            ...where,
+            message: `\`${access.name}\` is read through \`process?.env\`. Expo only inlines \`process.env\`, so it is undefined in the app.`,
+            fix: `process.env.${access.name}`,
           } satisfies Finding;
         case 'dynamic':
           return {
@@ -126,7 +136,8 @@ export function checkConfigMissing(model: ProjectModel): Finding[] {
     model.accesses.filter(
       (access) =>
         access.fileKind === 'config' &&
-        access.kind === 'inlined' &&
+        // Node evaluates the app config, so `process?.env.X` works there.
+        (access.kind === 'inlined' || access.kind === 'optional-process') &&
         access.name &&
         !access.hasFallback &&
         !CONFIG_BUILTINS.test(access.name),
@@ -188,7 +199,7 @@ export function checkPublicSecrets(model: ProjectModel): Finding[] {
   for (const env of model.environments) {
     for (const [name, defs] of env.defs) {
       if (!isPublic(name)) continue;
-      if (SECRET_NAME.test(name.slice(PUBLIC_PREFIX.length))) {
+      if (SECRET_NAME.test(name.slice(PUBLIC_PREFIX.length)) && !NOT_SECRET_SUFFIX.test(name)) {
         once(`name:${name}`, {
           id: 'public-secret-name',
           severity: 'error',
@@ -209,7 +220,12 @@ export function checkPublicSecrets(model: ProjectModel): Finding[] {
           });
         }
         if (def.visibility === 'sensitive') {
-          once(`sensitive:${name}`, {
+          const existing = findings.find((finding) => finding.id === 'public-sensitive' && finding.variable === name);
+          if (existing) {
+            if (!existing.environments!.includes(env.name)) existing.environments!.push(env.name);
+            continue;
+          }
+          findings.push({
             id: 'public-sensitive',
             severity: 'warning',
             variable: name,

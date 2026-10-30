@@ -21,6 +21,8 @@ jobs:
           cache: npm
       - name: Check tag matches package.json version
         run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
+      - name: Update npm (trusted publishing needs npm >= 11.5.1)
+        run: npm install -g npm@latest
       - run: npm ci
       - run: npm run typecheck
       - run: npm test

@@ -56,6 +56,7 @@ expo-env-doctor [projectDir]
   --ignore <VAR>         Ignore findings for a variable (repeatable)
   --json                 Machine-readable output
   --strict               Exit with 1 on warnings too
+  -v, --version          Show the version
 ```
 
 Exit codes: `0` no errors, `1` errors found, `2` usage or runtime error.

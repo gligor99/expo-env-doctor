@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { runDoctor } from './index.js';
@@ -16,6 +16,7 @@ Options:
   --ignore <VAR>         Ignore findings for a variable (repeatable)
   --json                 Machine-readable output
   --strict               Exit with 1 on warnings too
+  -v, --version          Show the version
   -h, --help             Show this help
 
 Exit codes: 0 no errors, 1 errors found, 2 usage or runtime error.`;
@@ -31,6 +32,7 @@ async function main(): Promise<number> {
         ignore: { type: 'string', multiple: true },
         json: { type: 'boolean', default: false },
         strict: { type: 'boolean', default: false },
+        version: { type: 'boolean', short: 'v', default: false },
         help: { type: 'boolean', short: 'h', default: false },
       },
     });
@@ -41,6 +43,11 @@ async function main(): Promise<number> {
   const { values, positionals } = parsed;
   if (values.help) {
     console.log(HELP);
+    return 0;
+  }
+  if (values.version) {
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string };
+    console.log(pkg.version);
     return 0;
   }
   const root = resolve(positionals[0] ?? '.');

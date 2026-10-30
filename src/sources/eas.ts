@@ -23,7 +23,12 @@ export class EasCliSource implements EasSource {
     private readonly command: string[] = defaultCommand(),
   ) {}
 
+  private ready: Promise<unknown> | undefined;
+
   async read(environment: string): Promise<VarDef[]> {
+    // The first `npx --yes eas-cli` may download it; parallel downloads race in the npx cache.
+    this.ready ??= this.exec(['--version']);
+    await this.ready;
     const [values, visibility] = await Promise.all([this.pull(environment), this.list(environment)]);
     return values.map((def) => ({ ...def, visibility: visibility.get(def.name) ?? def.visibility }));
   }

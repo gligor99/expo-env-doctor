@@ -8,6 +8,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - Variables read only in tooling files (`metro.config.js`, `scripts/` etc.) are no longer reported as unused.
 - Build profiles without `environment` now use the environment EAS picks for them (`production` for `store` distribution, otherwise `development` for development clients and `preview`), so their `eas.json` `env` is checked too. They're reported once, as info, instead of one warning per profile.
+- `EXPO_PUBLIC_` variables read in `app.config.*` are now checked. They were treated like Expo's own `EXPO_*` variables and skipped.
+- Reads that already handle `undefined` (`X && …`, `X === 'true'`, `X ? a : b`, `if (X)`, `!X`) count as having a fallback, like `??` and `||`. The `APP_VARIANT === 'development'` pattern from the Expo docs is no longer flagged in `app.config.*`.
+- `process['env'].EXPO_PUBLIC_X` is recognised. babel-preset-expo inlines it.
+- Config plugins (`plugins/`), `e2e/`, `__mocks__/` and Jest/Vitest setup files are treated as Node-side tooling, not app code.
+- EAS CLI is started once before environments are read in parallel, so a first `npx eas-cli` download doesn't race with itself.
 
 ### Added
 

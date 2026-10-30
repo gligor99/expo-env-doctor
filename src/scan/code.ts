@@ -93,15 +93,11 @@ function isMember(node: Node): node is Extract<Node, { type: 'MemberExpression' 
   return node.type === 'MemberExpression' || node.type === 'OptionalMemberExpression';
 }
 
+/** `process.env` or `process['env']`, the two forms babel-preset-expo recognises. */
 function isProcessEnv(node: Node): boolean {
-  return (
-    isMember(node) &&
-    !node.computed &&
-    node.object.type === 'Identifier' &&
-    node.object.name === 'process' &&
-    node.property.type === 'Identifier' &&
-    node.property.name === 'env'
-  );
+  if (!isMember(node) || node.object.type !== 'Identifier' || node.object.name !== 'process') return false;
+  if (!node.computed) return node.property.type === 'Identifier' && node.property.name === 'env';
+  return node.property.type === 'StringLiteral' && node.property.value === 'env';
 }
 
 /** Name read by `process.env.X` or `process.env['X']`; undefined for keys Babel can't inline. */
@@ -111,10 +107,28 @@ function memberName(member: Extract<Node, { type: 'MemberExpression' | 'Optional
   return undefined;
 }
 
+const COMPARISONS = new Set(['===', '!==', '==', '!=']);
+
+/**
+ * True when the read already handles the variable being undefined:
+ * `X ?? 'default'`, `X || 'default'`, `X && use(X)`, `X === 'true'`, `X ? a : b`, `if (X)`, `!X`.
+ */
 function hasFallback(member: Node, ancestors: Node[]): boolean {
   let child = member;
   let index = ancestors.length - 1;
   while (index >= 0 && TRANSPARENT.has(ancestors[index]!.type)) child = ancestors[index--]!;
   const parent = ancestors[index];
-  return parent?.type === 'LogicalExpression' && parent.left === child && (parent.operator === '??' || parent.operator === '||');
+  switch (parent?.type) {
+    case 'LogicalExpression':
+      return parent.left === child;
+    case 'BinaryExpression':
+      return COMPARISONS.has(parent.operator);
+    case 'ConditionalExpression':
+    case 'IfStatement':
+      return parent.test === child;
+    case 'UnaryExpression':
+      return parent.operator === '!';
+    default:
+      return false;
+  }
 }

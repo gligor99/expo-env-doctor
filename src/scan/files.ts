@@ -8,6 +8,9 @@ const SKIP_DIRS = new Set(['node_modules', 'ios', 'android', 'dist', 'build', 'w
 const TEST_FILE = /(?:\.(?:test|spec)\.[cm]?[jt]sx?$)|(?:(?:^|\/)__tests__\/)/;
 const TOOLING_CONFIG = /(?:^|\/)[^/]+\.config\.[cm]?[jt]s$/;
 const APP_CONFIG = /^app\.config\.[cm]?[jt]s$/;
+/** Run in Node, not in the app: config plugins, scripts, test setup and mocks, e2e tests. */
+const TOOLING_DIR = /^(?:scripts|plugins|e2e)\/|(?:^|\/)__mocks__\//;
+const TEST_SETUP = /(?:^|\/)(?:jest|vitest)[.-]setup[^/]*$|(?:^|\/)setupTests\.[cm]?[jt]sx?$/;
 const API_ROUTE = /\+(?:api|middleware)\.[cm]?[jt]sx?$/;
 
 /**
@@ -23,8 +26,8 @@ export function listSourceFiles(root: string): string[] {
 export function classifyFile(file: string): FileKind | undefined {
   if (file.endsWith('.d.ts') || TEST_FILE.test(file)) return undefined;
   if (APP_CONFIG.test(file)) return 'config';
-  // metro.config.js, babel.config.js, scripts/ etc. run in Node and read env legitimately.
-  if (TOOLING_CONFIG.test(file) || file.startsWith('scripts/')) return 'tooling';
+  // metro.config.js, babel.config.js, config plugins etc. run in Node and read env legitimately.
+  if (TOOLING_CONFIG.test(file) || TOOLING_DIR.test(file) || TEST_SETUP.test(file)) return 'tooling';
   if (API_ROUTE.test(file)) return 'server';
   return 'app';
 }

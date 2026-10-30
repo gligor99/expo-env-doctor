@@ -46,6 +46,8 @@ Expo replaces `process.env.EXPO_PUBLIC_*` with its value when the JS bundle is b
 | Variable defined but never read (reads in `*.config.*` and `scripts/` count)                                                                                   | warning                                   |
 | Typos: suggests a defined name within 2 characters                                                                                                             | hint                                      |
 
+A missing variable whose every read handles `undefined` (`??`, `||`, `&&`, a comparison, a ternary or `if` test, `!`) is reported one level lower.
+
 Values are never printed. Secret matches show only the first 4 characters and the length.
 
 ## Options
@@ -89,6 +91,7 @@ const { environments, findings } = await runDoctor('/path/to/app', { offline: tr
 - Only `process.env` reads in your own source files are checked. Values read inside `node_modules`, native code or config plugins are not.
 - An alias (`const env = process.env`) is reported, but reads through it aren't tracked by name.
 - Projects outside git: the tool can't tell which `.env` files EAS Build uploads, so it assumes all of them are.
+- Tested on macOS and Linux. Windows is untested.
 - Expo's inlining rules were verified on SDK 58 (see [docs/spikes.md](docs/spikes.md)). If a newer SDK behaves differently, please open an issue.
 
 ## Contributing

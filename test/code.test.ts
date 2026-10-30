@@ -14,6 +14,7 @@ describe('scanCode', () => {
     ['`${process.env.EXPO_PUBLIC_X}`', 'inlined'],
     ['(process.env as any).EXPO_PUBLIC_X', 'inlined'],
     ['process.env.EXPO_PUBLIC_X!', 'inlined'],
+    ["process['env'].EXPO_PUBLIC_X", 'inlined'],
   ])('%s is inlined', (expression, kind) => {
     expect(scan(`export const v = ${expression};`)).toEqual([{ name: 'EXPO_PUBLIC_X', kind, hasFallback: false }]);
   });
@@ -48,6 +49,23 @@ describe('scanCode', () => {
     ]);
   });
 
+  it.each([
+    'process.env.EXPO_PUBLIC_A && init(process.env.EXPO_PUBLIC_A)',
+    "process.env.EXPO_PUBLIC_A === 'true'",
+    'process.env.EXPO_PUBLIC_A ? 1 : 0',
+    '!process.env.EXPO_PUBLIC_A',
+  ])('treats %s as handling undefined', (expression) => {
+    expect(scan(`export const v = ${expression};`)[0]).toEqual({ name: 'EXPO_PUBLIC_A', kind: 'inlined', hasFallback: true });
+  });
+
+  it('treats an if test as handling undefined, but not the read inside it', () => {
+    expect(scan(`if (process.env.EXPO_PUBLIC_A) init(process.env.EXPO_PUBLIC_A);`).map((a) => a.hasFallback)).toEqual([true, false]);
+  });
+
+  it('flags a template literal key, which Expo does not inline', () => {
+    expect(scan('export const v = process.env[`EXPO_PUBLIC_A`];')).toEqual([{ name: undefined, kind: 'dynamic', hasFallback: false }]);
+  });
+
   it('ignores writes', () => {
     expect(scan(`process.env.EXPO_PUBLIC_A = '1';`)).toEqual([]);
   });
@@ -71,6 +89,14 @@ describe('classifyFile', () => {
     ['src/foo.test.ts', undefined],
     ['src/__tests__/foo.ts', undefined],
     ['scripts/seed.ts', 'tooling'],
+    ['plugins/withSentry.js', 'tooling'],
+    ['e2e/login.test.ts', undefined],
+    ['e2e/helpers.ts', 'tooling'],
+    ['__mocks__/expo-constants.ts', 'tooling'],
+    ['jest.setup.ts', 'tooling'],
+    ['jest-setup.js', 'tooling'],
+    ['src/setupTests.ts', 'tooling'],
+    ['src/plugins/analytics.ts', 'app'],
     ['types/env.d.ts', undefined],
   ])('%s → %s', (file, kind) => {
     expect(classifyFile(file)).toBe(kind);

@@ -4,7 +4,7 @@ const PUBLIC_PREFIX = 'EXPO_PUBLIC_';
 /** Inlined by babel-preset-expo or set by Expo itself, so fine to read in app code. */
 const EXPO_BUILTINS = /^(?:NODE_ENV|EXPO_OS|EXPO_BASE_URL|EXPO_PROJECT_ROOT|EXPO_ROUTER_[A-Z_]+)$/;
 /** Set by EAS or CI at config time, never by the user. */
-const CONFIG_BUILTINS = /^(?:NODE_ENV|CI|EAS_BUILD(?:_[A-Z_]+)?|EXPO_[A-Z_]+)$/;
+const CONFIG_BUILTINS = /^(?:NODE_ENV|CI|EAS_BUILD(?:_[A-Z_]+)?|EXPO_(?!PUBLIC_)[A-Z_]+)$/;
 const SECRET_NAME = /SECRET|PRIVATE|PASSWORD|PASSWD|SERVICE_ROLE|ACCESS_KEY|SIGNING/;
 const SECRET_VALUES: [RegExp, string][] = [
   [/^sk_(?:live|test)_[A-Za-z0-9]{10,}/, 'a Stripe secret key'],

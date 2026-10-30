@@ -151,11 +151,12 @@ describe('checkConfigMissing', () => {
           access('APP_VARIANT', { fileKind: 'config' }),
           access('BUNDLE_SUFFIX', { fileKind: 'config', hasFallback: true }),
           access('EAS_BUILD_PROFILE', { fileKind: 'config' }),
+          access('EXPO_PUBLIC_API_URL', { fileKind: 'config' }),
         ],
         environments: [env('eas:production', [])],
       }),
     );
-    expect(findings.map((f) => f.variable)).toEqual(['APP_VARIANT']);
+    expect(findings.map((f) => f.variable)).toEqual(['APP_VARIANT', 'EXPO_PUBLIC_API_URL']);
     expect(findings[0]?.severity).toBe('warning');
   });
 });

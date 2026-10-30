@@ -1,5 +1,38 @@
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { parseEnvListLong, parsePulledEnv } from '../src/sources/eas.js';
+import { EasCliSource, parseEnvListLong, parsePulledEnv } from '../src/sources/eas.js';
+
+describe('EasCliSource', () => {
+  it('runs eas-cli once before reading environments in parallel', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'eed-fake-eas-'));
+    try {
+      const log = join(dir, 'calls.log');
+      const fake = join(dir, 'eas.mjs');
+      writeFileSync(
+        fake,
+        [
+          "import { appendFileSync, writeFileSync } from 'node:fs';",
+          'const args = process.argv.slice(2);',
+          `appendFileSync(${JSON.stringify(log)}, args.slice(0, 2).join(' ') + '\\n');`,
+          "if (args[0] === 'env:pull') writeFileSync(args[args.indexOf('--path') + 1], 'EXPO_PUBLIC_A=' + args[1]);",
+          "if (args[0] === 'env:list') console.log('Name EXPO_PUBLIC_A\\nVisibility PUBLIC');",
+        ].join('\n'),
+      );
+      const source = new EasCliSource(dir, [process.execPath, fake]);
+      const [preview, production] = await Promise.all([source.read('preview'), source.read('production')]);
+      expect(preview).toEqual([{ name: 'EXPO_PUBLIC_A', value: 'preview', source: 'eas:preview', visibility: 'plaintext' }]);
+      expect(production[0]?.value).toBe('production');
+      const calls = readFileSync(log, 'utf8').trim().split('\n');
+      expect(calls[0]).toBe('--version');
+      expect(calls.filter((call) => call === '--version')).toHaveLength(1);
+      expect(calls).toHaveLength(5);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
 
 // Real output shapes from eas-cli 27.2.0 (see docs/spikes.md), with fake values.
 describe('parsePulledEnv', () => {

@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## Unreleased
 
+### Fixed
+
+- Variables read only in tooling files (`metro.config.js`, `scripts/` etc.) are no longer reported as unused.
+- Build profiles without `environment` now use the environment EAS picks for them (`production` for `store` distribution, otherwise `development` for development clients and `preview`), so their `eas.json` `env` is checked too. They're reported once, as info, instead of one warning per profile.
+
+### Added
+
+- `dev-client-production-environment` warning: a development client profile with the default `store` distribution and no `environment` gets production variables.
+
 ## 0.1.2 - 2026-10-30
 
 ### Changed

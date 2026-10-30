@@ -23,9 +23,8 @@ export function listSourceFiles(root: string): string[] {
 export function classifyFile(file: string): FileKind | undefined {
   if (file.endsWith('.d.ts') || TEST_FILE.test(file)) return undefined;
   if (APP_CONFIG.test(file)) return 'config';
-  // metro.config.js, babel.config.js etc. run in Node and read env legitimately.
-  if (TOOLING_CONFIG.test(file)) return undefined;
-  if (file.startsWith('scripts/')) return undefined;
+  // metro.config.js, babel.config.js, scripts/ etc. run in Node and read env legitimately.
+  if (TOOLING_CONFIG.test(file) || file.startsWith('scripts/')) return 'tooling';
   if (API_ROUTE.test(file)) return 'server';
   return 'app';
 }

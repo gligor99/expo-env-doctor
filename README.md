@@ -41,8 +41,9 @@ Expo replaces `process.env.EXPO_PUBLIC_*` with its value when the JS bundle is b
 | Variable needed in a cloud build but only defined in a gitignored `.env` file                                                                                  | error (as a hint on the missing variable) |
 | `app.config.*` reads a variable missing in an environment, with no fallback                                                                                    | warning                                   |
 | `EXPO_PUBLIC_` variable marked `sensitive` on EAS (it ships in plain text anyway)                                                                              | warning                                   |
-| `eas.json` build profile without `environment`                                                                                                                 | warning                                   |
-| Variable defined but never read                                                                                                                                | warning                                   |
+| Development client build profile that gets the `production` EAS environment (no `environment`, default `store` distribution)                                   | warning                                   |
+| `eas.json` build profiles without `environment` (lists the environment EAS picks for each)                                                                     | info                                      |
+| Variable defined but never read (reads in `*.config.*` and `scripts/` count)                                                                                   | warning                                   |
 | Typos: suggests a defined name within 2 characters                                                                                                             | hint                                      |
 
 Values are never printed. Secret matches show only the first 4 characters and the length.

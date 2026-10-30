@@ -227,15 +227,28 @@ export function checkPublicSecrets(model: ProjectModel): Finding[] {
 /** Without `environment`, a build profile doesn't say which EAS variables it gets. */
 export function checkEasJsonEnvironment(model: ProjectModel): Finding[] {
   if (model.easEnvironmentsWithVars.length === 0) return [];
-  return model.easProfiles
-    .filter((profile) => !profile.environment && !profile.isBase)
-    .map((profile) => ({
+  const implicit = model.easProfiles.filter((profile) => profile.implicitEnvironment && !profile.isBase);
+  // A development client with the default "store" distribution gets production variables.
+  const devClientOnProduction = implicit.filter((profile) => profile.developmentClient && profile.environment === 'production');
+  const findings: Finding[] = devClientOnProduction.map((profile) => ({
+    id: 'dev-client-production-environment',
+    severity: 'warning',
+    file: 'eas.json',
+    message: `Build profile "${profile.name}" builds a development client but gets the "production" EAS environment, because it has no "environment" and its distribution is "store".`,
+    fix: `"${profile.name}": { "environment": "development" }`,
+  }));
+  const rest = implicit.filter((profile) => !devClientOnProduction.includes(profile));
+  if (rest.length > 0) {
+    findings.push({
       id: 'eas-profile-without-environment',
-      severity: 'warning' as Severity,
+      severity: 'info',
       file: 'eas.json',
-      message: `Build profile "${profile.name}" has no "environment", so eas.json doesn't show which EAS variables its builds get.`,
-      fix: `"${profile.name}": { "environment": "${guessEnvironment(profile.name, model.easEnvironmentsWithVars)}" }`,
-    }));
+      environments: unique(rest.map((profile) => profile.environment)),
+      message: `Build profiles without "environment" use the one EAS picks: ${rest.map((profile) => `${profile.name} → ${profile.environment}`).join(', ')}.`,
+      fix: `Set it explicitly to make it visible, e.g. "${rest[0]!.name}": { "environment": "${rest[0]!.environment}" }`,
+    });
+  }
+  return findings;
 }
 
 function hints(name: string, envs: Environment[]): string[] {
@@ -259,14 +272,6 @@ function fixForEnvironments(envs: Environment[], name: string): string {
 
 function list(envs: Environment[]): string {
   return envs.map((env) => env.name).join(', ');
-}
-
-function guessEnvironment(profile: string, available: string[]): string {
-  const lower = profile.toLowerCase();
-  return (
-    available.find((env) => lower.includes(env)) ??
-    (lower.includes('dev') ? 'development' : lower.includes('prev') ? 'preview' : 'production')
-  );
 }
 
 function groupBy<T, K>(items: T[], key: (item: T) => K): Map<K, T[]> {

@@ -19,25 +19,41 @@ export function readEasJson(root: string): EasJson {
     return { profiles: [], error: (error as Error).message };
   }
   const raw = json.build ?? {};
-  const resolve = (name: string, seen: Set<string>): Omit<EasProfile, 'name'> => {
+  const resolve = (name: string, seen: Set<string>): RawProfile => {
     const profile = raw[name];
-    if (!profile || seen.has(name)) return { env: {} };
+    if (!profile || seen.has(name)) return {};
     seen.add(name);
-    const base = profile.extends ? resolve(profile.extends, seen) : { env: {} };
-    return {
-      environment: profile.environment ?? base.environment,
-      env: { ...base.env, ...(profile.env ?? {}) },
-    };
+    const base = profile.extends ? resolve(profile.extends, seen) : {};
+    return { ...base, ...profile, env: { ...base.env, ...profile.env } };
   };
   const bases = new Set(Object.values(raw).flatMap((profile) => (profile.extends ? [profile.extends] : [])));
   return {
-    profiles: Object.keys(raw).map((name) => ({ name, ...resolve(name, new Set()), ...(bases.has(name) ? { isBase: true } : {}) })),
+    profiles: Object.keys(raw).map((name) => {
+      const profile = resolve(name, new Set());
+      return {
+        name,
+        environment: profile.environment ?? defaultEnvironment(profile),
+        ...(profile.environment ? {} : { implicitEnvironment: true }),
+        ...(profile.developmentClient ? { developmentClient: true } : {}),
+        env: profile.env ?? {},
+        ...(bases.has(name) ? { isBase: true } : {}),
+      };
+    }),
   };
+}
+
+/** What EAS Build uses when a profile has no `environment` (eas-cli 27, resolveSuggestedEnvironmentForBuildProfileConfiguration). */
+function defaultEnvironment(profile: RawProfile): string {
+  // `distribution` defaults to "store".
+  if ((profile.distribution ?? 'store') === 'store') return 'production';
+  return profile.developmentClient ? 'development' : 'preview';
 }
 
 interface RawProfile {
   extends?: string;
   environment?: string;
+  distribution?: string;
+  developmentClient?: boolean;
   env?: Record<string, string>;
 }
 

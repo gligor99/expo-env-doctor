@@ -97,3 +97,16 @@ Date: 2026-10-30. Sources: GitHub issue search (unauthenticated API), Stack Over
 **Reading:** this is a _silent_ bug. People hit it, fix it locally, and rarely file an issue. Nobody asks for a tool, but at least one team built its own preflight. That's evidence of the pain, not of demand for a package.
 
 **New differentiator idea:** a `--bundle <dist>` audit mode. Grep the exported bundle for the expected value per environment, and for secret-looking values. It catches the stale-Metro-cache class, which source analysis can't see.
+
+## EAS environment for profiles without `environment`
+
+Read from eas-cli 27.2.0 source (`build/build/evaluateConfigWithEnvVarsAsync.js`, `resolveSuggestedEnvironmentForBuildProfileConfiguration`) and `@expo/eas-json` (`distribution` defaults to `store`):
+
+| Profile                                                | EAS environment |
+| ------------------------------------------------------ | --------------- |
+| `environment` set                                      | that one        |
+| `distribution: "store"` (the default)                  | production      |
+| `distribution: "internal"` + `developmentClient: true` | development     |
+| `distribution: "internal"`, no development client      | preview         |
+
+So a development client profile without `distribution: "internal"` and without `environment` gets production variables.

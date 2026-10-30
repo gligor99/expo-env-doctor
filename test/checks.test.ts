@@ -225,15 +225,23 @@ describe('checkPublicSecrets', () => {
 });
 
 describe('checkEasJsonEnvironment', () => {
-  it('flags profiles without environment when EAS has variables', () => {
+  it('reports profiles without environment once, as info', () => {
     const profiles = [
-      { name: 'preview', env: {} },
+      { name: 'preview', environment: 'preview', implicitEnvironment: true, env: {} },
+      { name: 'store', environment: 'production', implicitEnvironment: true, env: {} },
       { name: 'production', environment: 'production', env: {} },
-      { name: 'base', env: {}, isBase: true },
+      { name: 'base', environment: 'production', implicitEnvironment: true, env: {}, isBase: true },
     ];
     expect(checkEasJsonEnvironment(model({ easProfiles: profiles, easEnvironmentsWithVars: [] }))).toEqual([]);
     const findings = checkEasJsonEnvironment(model({ easProfiles: profiles, easEnvironmentsWithVars: ['preview', 'production'] }));
     expect(findings).toHaveLength(1);
-    expect(findings[0]?.fix).toBe('"preview": { "environment": "preview" }');
+    expect(findings[0]).toMatchObject({ id: 'eas-profile-without-environment', severity: 'info' });
+    expect(findings[0]?.message).toContain('preview → preview, store → production');
+  });
+
+  it('warns when a development client gets the production environment', () => {
+    const profiles = [{ name: 'development', environment: 'production', implicitEnvironment: true, developmentClient: true, env: {} }];
+    const findings = checkEasJsonEnvironment(model({ easProfiles: profiles, easEnvironmentsWithVars: ['production'] }));
+    expect(findings).toEqual([expect.objectContaining({ id: 'dev-client-production-environment', severity: 'warning' })]);
   });
 });

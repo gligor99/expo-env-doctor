@@ -12,7 +12,8 @@ export interface Finding {
 }
 
 /** Where a file's code runs, which decides the rules that apply to it. */
-export type FileKind = 'app' | 'config' | 'server';
+/** `tooling`: Node-side files (metro.config.js, scripts/) that only count as reads for the unused check. */
+export type FileKind = 'app' | 'config' | 'server' | 'tooling';
 
 export type AccessKind =
   /** `process.env.X`, `process.env['X']`, `process.env?.X`: inlined by babel-preset-expo. */
@@ -59,7 +60,11 @@ export interface Environment {
 
 export interface EasProfile {
   name: string;
-  environment?: string;
+  /** The EAS environment its builds use: set in eas.json, or the one EAS picks when it isn't. */
+  environment: string;
+  /** eas.json doesn't set `environment`, so EAS picked it. */
+  implicitEnvironment?: boolean;
+  developmentClient?: boolean;
   env: Record<string, string>;
   /** Other profiles extend this one, so it is likely a shared base, not built directly. */
   isBase?: boolean;

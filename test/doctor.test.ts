@@ -93,6 +93,38 @@ describe('runDoctor', () => {
     expect(result.findings.some((f) => f.environments?.includes('local'))).toBe(false);
   });
 
+  it('counts reads in tooling files as used, without applying app rules to them', async () => {
+    const root = project({
+      'App.tsx': '',
+      '.env': 'EXPO_PUBLIC_SENTRY_FORCE_ENABLE=1',
+      'metro.config.js': 'module.exports = { enabled: process.env.EXPO_PUBLIC_SENTRY_FORCE_ENABLE, secret: process.env.SECRET };',
+    });
+    expect((await runDoctor(root, { offline: true })).findings).toEqual([]);
+  });
+
+  it('uses the environment EAS picks for profiles without one (eas-cli resolveSuggestedEnvironment)', async () => {
+    const root = project({
+      'App.tsx': 'export const a = process.env.EXPO_PUBLIC_A;',
+      'eas.json': JSON.stringify({
+        build: {
+          base: { env: { EXPO_PUBLIC_A: 'base' } },
+          development: { developmentClient: true, distribution: 'internal' },
+          preview: { distribution: 'internal', env: { EXPO_PUBLIC_A: 'p' } },
+          production: { extends: 'base' },
+        },
+      }),
+    });
+    const result = await runDoctor(root, { eas: fakeEas({ production: [{ name: 'EXPO_PUBLIC_B', value: '1' }] }) });
+    expect(ids(result.findings)).toEqual([
+      'eas-profile-without-environment development,preview,production',
+      'missing-variable eas:development EXPO_PUBLIC_A',
+      'unused-variable EXPO_PUBLIC_B',
+    ]);
+    expect(result.findings.find((f) => f.id === 'eas-profile-without-environment')?.message).toContain(
+      'development → development, preview → preview, production → production',
+    );
+  });
+
   describe('.easignore (rules verified in docs/spikes.md, spike 3)', () => {
     const app = {
       'apps/mobile/App.tsx': 'export const a = process.env.EXPO_PUBLIC_A;',

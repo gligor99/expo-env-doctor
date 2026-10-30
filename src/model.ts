@@ -47,10 +47,9 @@ export async function buildModel(root: string, options: BuildOptions = {}): Prom
   }
 
   const easEnvironmentsWithVars: string[] = [];
+  const builtProfiles = easJson.profiles.filter((profile) => !profile.isBase);
   if (options.eas) {
-    const wanted =
-      options.environments ??
-      unique([...DEFAULT_EAS_ENVIRONMENTS, ...easJson.profiles.flatMap((p) => (p.environment ? [p.environment] : []))]);
+    const wanted = options.environments ?? unique([...DEFAULT_EAS_ENVIRONMENTS, ...builtProfiles.map((profile) => profile.environment)]);
     const isUploaded = createUploadFilter(root);
     // EAS Build bundles JS in production mode, from the files it uploaded.
     const productionFiles = readEnvFiles(root, 'production');
@@ -67,11 +66,11 @@ export async function buildModel(root: string, options: BuildOptions = {}): Prom
         });
         return;
       }
-      const usedByProfile = easJson.profiles.some((profile) => profile.environment === name);
+      const usedByProfile = builtProfiles.some((profile) => profile.environment === name);
       if (result.value.length > 0) easEnvironmentsWithVars.push(name);
       // An empty environment nobody builds with would flag every variable as missing.
       if (result.value.length === 0 && !usedByProfile && !options.environments) return;
-      environments.push(easEnvironment(name, result.value, easJson.profiles, productionFiles, isUploaded));
+      environments.push(easEnvironment(name, result.value, builtProfiles, productionFiles, isUploaded));
     });
   }
   if (!environments.some((env) => env.name.startsWith('eas:')) && hasEnvFiles) {

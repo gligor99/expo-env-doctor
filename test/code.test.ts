@@ -67,10 +67,10 @@ describe('classifyFile', () => {
     ['app/(tabs)/index.tsx', 'app'],
     ['app.config.ts', 'config'],
     ['app/api/user+api.ts', 'server'],
-    ['metro.config.js', undefined],
+    ['metro.config.js', 'tooling'],
     ['src/foo.test.ts', undefined],
     ['src/__tests__/foo.ts', undefined],
-    ['scripts/seed.ts', undefined],
+    ['scripts/seed.ts', 'tooling'],
     ['types/env.d.ts', undefined],
   ])('%s → %s', (file, kind) => {
     expect(classifyFile(file)).toBe(kind);

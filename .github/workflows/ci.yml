@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 20.19 is the minimum in package.json engines.
+        node: ['20.19', 22, 24]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Smoke test the built CLI
+        run: |
+          node dist/cli.js --help
+          node dist/cli.js spikes/fixture-app --offline --json > report.json || test $? -eq 1
+          node -e "const r=require('./report.json'); if (!r.findings.some(f => f.id === 'destructured-env')) { console.error('expected findings missing'); process.exit(1) }"
+      - name: Check package contents
+        run: npm pack --dry-run

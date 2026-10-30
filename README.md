@@ -1,5 +1,7 @@
 # expo-env-doctor
 
+[![CI](https://github.com/gligor99/expo-env-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/gligor99/expo-env-doctor/actions/workflows/ci.yml)
+
 Finds the environment variables your Expo app reads that will be `undefined` on a user's device, before you ship.
 
 ```sh
